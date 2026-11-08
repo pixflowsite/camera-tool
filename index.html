@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Capture Tool</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        #video {
+            width: 100%;
+            border-radius: 10px;
+            background: #000;
+            display: block;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        button {
+            flex: 1;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #snap {
+            background: #007BFF;
+            color: white;
+        }
+        #snap:hover { background: #0056b3; }
+        #download {
+            background: #28a745;
+            color: white;
+            display: none;
+        }
+        #download:hover { background: #1e7e34; }
+        #switch {
+            background: #ffc107;
+            color: #333;
+        }
+        #switch:hover { background: #e0a800; }
+        #photo {
+            width: 100%;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: none;
+            border: 3px solid #28a745;
+        }
+        .status {
+            text-align: center;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 Camera Capture Tool</h1>
+        <p class="subtitle">QR Scan ചെയ്ത് Camera ഉപയോഗിക്കുക</p>
+        
+        <video id="video" autoplay playsinline></video>
+        
+        <div class="button-group">
+            <button id="snap">📷 Capture</button>
+            <button id="switch">🔄 Switch</button>
+            <button id="download">💾 Save</button>
+        </div>
+        
+        <img id="photo">
+        <div id="status" class="status info">Camera init ചെയ്യുന്നു...</div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.createElement('canvas');
+        const snapBtn = document.getElementById('snap');
+        const switchBtn = document.getElementById('switch');
+        const downloadBtn = document.getElementById('download');
+        const photoImg = document.getElementById('photo');
+        const status = document.getElementById('status');
+
+        let currentStream = null;
+        let facingMode = "environment"; // Back camera default
+
+        // Camera Start ചെയ്യാൻ
+        async function startCamera() {
+            try {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+                
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: facingMode },
+                    audio: false
+                });
+                
+                video.srcObject = stream;
+                currentStream = stream;
+                status.textContent = "✅ Camera Active - Ready to capture";
+                status.className = "status success";
+            } catch (err) {
+                status.textContent = "❌ Error: " + err.message;
+                status.className = "status error";
+                console.error(err);
+            }
+        }
+
+        // Photo Capture ചെയ്യാൻ
+        snapBtn.addEventListener('click', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            
+            const dataUrl = canvas.toDataURL('image/png');
+            photoImg.src = dataUrl;
+            photoImg.style.display = 'block';
+            downloadBtn.style.display = 'block';
+            downloadBtn.dataset.url = dataUrl;
+            
+            status.textContent = "✅ Photo Captured Successfully!";
+            status.className = "status success";
+        });
+
+        // Camera Switch ചെയ്യാൻ (Front/Back)
+        switchBtn.addEventListener('click', () => {
+            facingMode = facingMode === "environment" ? "user" : "environment";
+            startCamera();
+        });
+
+        // Photo Download ചെയ്യാൻ
+        downloadBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'capture_' + Date.now() + '.png';
+            link.href = downloadBtn.dataset.url;
+            link.click();
+        });
+
+        // Page Load ആകുമ്പോൾ Camera Start ചെയ്യുക
+        startCamera();
+    </script>
+</body>
+</html>
